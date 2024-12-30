@@ -46,7 +46,7 @@ const verifyToken = (req,res, next) => {
 // DB_PASS = gaLuYPjClICmVKQo
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.7vw6m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
-
+// const url = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.7vw6m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
@@ -104,12 +104,38 @@ async function run() {
     app.get('/jobs',  async(req,res) =>{
       // console.log('now inside the api callback')
       const email = req.query.email;
+      const sort = req.query?.sort;
+      const search = req.query?.search;
+      const min = req.query?.min;
+      const max = req.query?.max;
+
+      // console.log(req.query);
+
       let query = {};
+      let sortQuery = {};
+
       if(email) {
         query = { hr_email : email}
       }
 
-      const cursor = jobsCollection.find(query);
+      if(sort == "true"){
+        sortQuery = {"salaryRange.min": -1}
+      }
+
+      if(search){
+        query.location = {$regex:search, $options:"i"}
+      }
+
+      if(min && max){
+        query = {
+          ...query,
+          "salaryRange.min": { $gte: parseInt(min)},
+          "salaryRange.max": { $lte: parseInt(max)},
+        };
+      }
+
+     
+      const cursor = jobsCollection.find(query).sort(sortQuery);
       const result = await cursor.toArray();
       res.send(result);
     });
